@@ -2,4 +2,12 @@ node_modules/
 data/
 *.db
 .env
+.env*
 .DS_Store
+dist/
+build/
+*.log
+coverage/
+*.tmp
+*.swp
+Thumbs.db

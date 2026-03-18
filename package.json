@@ -1,0 +1,26 @@
+{
+  "name": "linkstash",
+  "version": "1.0.0",
+  "description": "Personal bookmark manager with tags, favorites, and search",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.0"
+  }
+}
