@@ -58,6 +58,8 @@ describe('GET /api/bookmarks?search=X', () => {
     const res = await request(app).get('/api/bookmarks?search=Official');
     expect(res.status).toBe(200);
     expect(res.body.bookmarks.length).toBe(2);
+    expect(res.body.pagination).toBeDefined();
+    expect(res.body.pagination.total).toBe(2);
   });
 
   it('should search by URL', async () => {

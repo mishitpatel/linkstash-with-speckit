@@ -21,6 +21,8 @@ export function getBookmarks(params = {}) {
   if (params.search) query.set('search', params.search);
   if (params.tag) query.set('tag', params.tag);
   if (params.favorite) query.set('favorite', 'true');
+  if (params.cursor) query.set('cursor', params.cursor);
+  if (params.page_size) query.set('page_size', String(params.page_size));
   const qs = query.toString();
   return request('GET', `/bookmarks${qs ? '?' + qs : ''}`);
 }

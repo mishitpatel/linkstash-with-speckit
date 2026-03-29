@@ -1,5 +1,7 @@
 import { getDatabase } from '../db/database.js';
 import { normalizeTags } from '../utils/tags.js';
+import { encodeCursor, decodeCursor } from '../utils/cursor.js';
+import { buildFilterConditions, resolvePageSize } from './paginationHelper.js';
 
 function validateUrl(url) {
   try {
@@ -70,36 +72,71 @@ export function create({ url, title, description, tags }) {
   return getById(result);
 }
 
-export function getAll({ search, tag, favorite } = {}) {
+export function getPaginated({ search, tag, favorite, cursor, pageSize } = {}) {
   const db = getDatabase();
-  const conditions = [];
-  const params = [];
+  const limit = resolvePageSize(pageSize);
+  const { conditions: filterConds, params: filterParams } = buildFilterConditions({ search, tag, favorite });
 
-  if (favorite) {
-    conditions.push('b.is_favorite = 1');
+  let direction = 'forward';
+  const cursorConds = [];
+  const cursorParams = [];
+
+  if (cursor) {
+    const decoded = decodeCursor(cursor);
+    direction = decoded.direction;
+    if (direction === 'backward') {
+      cursorConds.push('(b.created_at > ? OR (b.created_at = ? AND b.id > ?))');
+    } else {
+      cursorConds.push('(b.created_at < ? OR (b.created_at = ? AND b.id < ?))');
+    }
+    cursorParams.push(decoded.createdAt, decoded.createdAt, decoded.id);
   }
 
-  if (tag) {
-    conditions.push(`
-      b.id IN (
-        SELECT bt.bookmark_id FROM bookmark_tags bt
-        JOIN tags t ON t.id = bt.tag_id
-        WHERE t.name = ?
-      )
-    `);
-    params.push(tag.toLowerCase());
+  const allConditions = [...filterConds, ...cursorConds];
+  const allParams = [...filterParams, ...cursorParams];
+  const where = allConditions.length > 0 ? `WHERE ${allConditions.join(' AND ')}` : '';
+  const orderBy = direction === 'backward'
+    ? 'ORDER BY b.created_at ASC, b.id ASC'
+    : 'ORDER BY b.created_at DESC, b.id DESC';
+
+  const rows = db.prepare(
+    `SELECT * FROM bookmarks b ${where} ${orderBy} LIMIT ?`
+  ).all(...allParams, limit + 1);
+
+  const hasMore = rows.length > limit;
+  const pageRows = rows.slice(0, limit);
+  if (direction === 'backward') pageRows.reverse();
+
+  const countWhere = filterConds.length > 0 ? `WHERE ${filterConds.join(' AND ')}` : '';
+  const total = db.prepare(
+    `SELECT COUNT(*) as count FROM bookmarks b ${countWhere}`
+  ).get(...filterParams).count;
+
+  const bookmarks = pageRows.map(row => formatBookmark(db, row));
+
+  let nextCursor = null;
+  let prevCursor = null;
+
+  if (pageRows.length > 0) {
+    const first = pageRows[0];
+    const last = pageRows[pageRows.length - 1];
+
+    if (direction === 'forward') {
+      if (hasMore) nextCursor = encodeCursor(last.created_at, last.id, 'f');
+      if (cursor) prevCursor = encodeCursor(first.created_at, first.id, 'b');
+    } else {
+      const moreAfter = db.prepare(
+        `SELECT 1 FROM bookmarks b ${filterConds.length > 0 ? 'WHERE ' + filterConds.join(' AND ') + ' AND ' : 'WHERE '}(b.created_at < ? OR (b.created_at = ? AND b.id < ?)) LIMIT 1`
+      ).get(...filterParams, last.created_at, last.created_at, last.id);
+      if (moreAfter) nextCursor = encodeCursor(last.created_at, last.id, 'f');
+      if (hasMore) prevCursor = encodeCursor(first.created_at, first.id, 'b');
+    }
   }
 
-  if (search) {
-    conditions.push('(b.title LIKE ? OR b.url LIKE ? OR b.description LIKE ?)');
-    const pattern = `%${search}%`;
-    params.push(pattern, pattern, pattern);
-  }
-
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const rows = db.prepare(`SELECT * FROM bookmarks b ${where} ORDER BY b.created_at DESC`).all(...params);
-
-  return rows.map(row => formatBookmark(db, row));
+  return {
+    bookmarks,
+    pagination: { next_cursor: nextCursor, prev_cursor: prevCursor, total, page_size: limit },
+  };
 }
 
 export function getById(id) {

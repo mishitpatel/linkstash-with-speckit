@@ -148,6 +148,62 @@ export function getFormData() {
   return { id: id ? Number(id) : null, url, title, description, tags };
 }
 
+export function renderPagination(pagination, pageOffset, { onNext, onPrev }) {
+  let bar = document.getElementById('pagination-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'pagination-bar';
+    bar.className = 'pagination-bar';
+    document.getElementById('bookmark-list').after(bar);
+  }
+
+  if (pagination.total <= pagination.page_size) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = '';
+
+  const start = pageOffset + 1;
+  const end = Math.min(pageOffset + pagination.page_size, pagination.total);
+
+  bar.innerHTML = `
+    <button class="btn btn-ghost pagination-btn" id="prev-page" ${pagination.prev_cursor ? '' : 'disabled'}>&#8592; Previous</button>
+    <span class="pagination-info">Showing ${start}\u2013${end} of ${pagination.total}</span>
+    <button class="btn btn-ghost pagination-btn" id="next-page" ${pagination.next_cursor ? '' : 'disabled'}>Next &#8594;</button>
+  `;
+
+  bar.querySelector('#prev-page').addEventListener('click', onPrev);
+  bar.querySelector('#next-page').addEventListener('click', onNext);
+}
+
+export function renderPageSizeSelector(currentSize, total, onChange) {
+  let selector = document.getElementById('page-size-selector');
+  if (!selector) {
+    selector = document.createElement('div');
+    selector.id = 'page-size-selector';
+    selector.className = 'page-size-selector';
+    const bar = document.getElementById('pagination-bar');
+    if (bar) bar.after(selector);
+  }
+
+  if (total <= currentSize && total <= 10) {
+    selector.style.display = 'none';
+    return;
+  }
+  selector.style.display = '';
+
+  selector.innerHTML = `
+    <label for="page-size-select">Per page:</label>
+    <select id="page-size-select">
+      ${[10, 20, 50, 100].map(n => `<option value="${n}" ${n === currentSize ? 'selected' : ''}>${n}</option>`).join('')}
+    </select>
+  `;
+
+  selector.querySelector('#page-size-select').addEventListener('change', (e) => {
+    onChange(Number(e.target.value));
+  });
+}
+
 export function setFavoritesFilterActive(active) {
   const btn = document.getElementById('favorites-filter');
   btn.classList.toggle('active', active);

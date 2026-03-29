@@ -97,3 +97,15 @@ tests/
 ## License
 
 ISC
+
+## TBD
+1. Pagination — Practical, since the app currently loads all bookmarks at once. Good for scaling beyond hundreds.
+  2. Bookmark Import/Export — Import from browser HTML bookmark files, export to JSON. Useful and has interesting edge cases (duplicate handling, tag mapping, malformed files).
+
+  New ideas that would add real value:
+  3. Link Health Checker — Periodically or on-demand check if bookmarked URLs are still alive. Show status indicators (alive/dead/redirect), detect link rot. This is a more
+  interesting spec with background processing, status tracking, and UI considerations.
+  4. Collections — Group bookmarks into named collections (beyond flat tags). Adds organizational depth — e.g., "Research", "Recipes", "Work".
+
+  My recommendation: Bookmark Import/Export or Link Health Checker would make for the most interesting and well-scoped spec. Pagination is straightforward but a bit thin as a
+  standalone feature. Import/Export has clear user value and meaty edge cases. Link Health Checker is the most architecturally interesting.
