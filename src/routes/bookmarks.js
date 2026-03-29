@@ -4,17 +4,30 @@ import { fetchTitle } from '../services/titleFetcher.js';
 
 const router = Router();
 
-// GET /api/bookmarks - List all bookmarks with optional filters
+// GET /api/bookmarks - List bookmarks with cursor-based pagination
 router.get('/', (req, res) => {
   try {
-    const { search, tag, favorite } = req.query;
-    const bookmarks = bookmarkService.getAll({
+    const { search, tag, favorite, cursor, page_size } = req.query;
+
+    if (page_size !== undefined) {
+      const n = Number(page_size);
+      if (!Number.isInteger(n) || n < 1) {
+        return res.status(400).json({ error: 'Invalid page size: must be a positive integer' });
+      }
+    }
+
+    const result = bookmarkService.getPaginated({
       search,
       tag,
       favorite: favorite === 'true',
+      cursor: cursor || null,
+      pageSize: page_size !== undefined ? Number(page_size) : undefined,
     });
-    res.json({ bookmarks });
+    res.json(result);
   } catch (err) {
+    if (err.message === 'Invalid cursor') {
+      return res.status(400).json({ error: 'Invalid cursor' });
+    }
     res.status(500).json({ error: err.message });
   }
 });

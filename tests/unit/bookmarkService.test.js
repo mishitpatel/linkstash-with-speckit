@@ -80,22 +80,37 @@ describe('bookmarkService', () => {
     });
   });
 
-  describe('getAll', () => {
+  describe('getPaginated', () => {
     it('should return bookmarks sorted newest first', () => {
       bookmarkService.create({ url: 'https://a.com', title: 'A' });
       db.prepare(
         "INSERT INTO bookmarks (url, title, created_at) VALUES (?, ?, datetime('now', '+1 second'))"
       ).run('https://b.com', 'B');
 
-      const all = bookmarkService.getAll();
-      expect(all.length).toBe(2);
-      expect(all[0].title).toBe('B');
-      expect(all[1].title).toBe('A');
+      const result = bookmarkService.getPaginated();
+      expect(result.bookmarks.length).toBe(2);
+      expect(result.bookmarks[0].title).toBe('B');
+      expect(result.bookmarks[1].title).toBe('A');
+      expect(result.pagination.total).toBe(2);
     });
 
     it('should return empty array when no bookmarks', () => {
-      const all = bookmarkService.getAll();
-      expect(all).toEqual([]);
+      const result = bookmarkService.getPaginated();
+      expect(result.bookmarks).toEqual([]);
+      expect(result.pagination.total).toBe(0);
+    });
+
+    it('should paginate with cursor', () => {
+      for (let i = 0; i < 5; i++) {
+        bookmarkService.create({ url: `https://site${i}.com`, title: `Site ${i}` });
+      }
+      const page1 = bookmarkService.getPaginated({ pageSize: 3 });
+      expect(page1.bookmarks.length).toBe(3);
+      expect(page1.pagination.next_cursor).toBeTruthy();
+
+      const page2 = bookmarkService.getPaginated({ pageSize: 3, cursor: page1.pagination.next_cursor });
+      expect(page2.bookmarks.length).toBe(2);
+      expect(page2.pagination.next_cursor).toBeNull();
     });
   });
 

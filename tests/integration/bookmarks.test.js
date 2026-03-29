@@ -94,6 +94,10 @@ describe('GET /api/bookmarks', () => {
     const res = await request(app).get('/api/bookmarks');
     expect(res.status).toBe(200);
     expect(res.body.bookmarks).toEqual([]);
+    expect(res.body.pagination).toBeDefined();
+    expect(res.body.pagination.total).toBe(0);
+    expect(res.body.pagination.next_cursor).toBeNull();
+    expect(res.body.pagination.prev_cursor).toBeNull();
   });
 
   it('should return bookmarks sorted by newest first', async () => {
@@ -112,6 +116,7 @@ describe('GET /api/bookmarks', () => {
     expect(res.body.bookmarks.length).toBe(2);
     expect(res.body.bookmarks[0].title).toBe('Second');
     expect(res.body.bookmarks[1].title).toBe('First');
+    expect(res.body.pagination.total).toBe(2);
   });
 });
 

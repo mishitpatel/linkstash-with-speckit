@@ -9,6 +9,8 @@ let state = {
   bookmarks: [],
   tags: [],
   deleteTarget: null,
+  pagination: { next_cursor: null, prev_cursor: null, total: 0, page_size: 20 },
+  pageOffset: 0,
 };
 
 // Debounce helper
@@ -21,14 +23,17 @@ function debounce(fn, ms) {
 }
 
 // Data fetching
-async function loadBookmarks() {
+async function loadBookmarks(cursor = null) {
   try {
     const params = {};
     if (state.search) params.search = state.search;
     if (state.tag) params.tag = state.tag;
     if (state.favorite) params.favorite = true;
+    if (cursor) params.cursor = cursor;
+    if (state.pagination.page_size !== 20) params.page_size = state.pagination.page_size;
     const data = await api.getBookmarks(params);
     state.bookmarks = data.bookmarks;
+    state.pagination = data.pagination;
     const isFiltered = !!(state.search || state.tag || state.favorite);
     ui.renderBookmarks(state.bookmarks, {
       onFavorite: handleFavorite,
@@ -37,9 +42,38 @@ async function loadBookmarks() {
       onTagClick: handleTagClick,
       isFiltered,
     });
+    ui.renderPagination(state.pagination, state.pageOffset, {
+      onNext: handleNextPage,
+      onPrev: handlePrevPage,
+    });
+    ui.renderPageSizeSelector(state.pagination.page_size, state.pagination.total, handlePageSizeChange);
   } catch (err) {
     console.error('Failed to load bookmarks:', err);
   }
+}
+
+function handleNextPage() {
+  if (state.pagination.next_cursor) {
+    state.pageOffset += state.pagination.page_size;
+    loadBookmarks(state.pagination.next_cursor);
+  }
+}
+
+function handlePrevPage() {
+  if (state.pagination.prev_cursor) {
+    state.pageOffset = Math.max(0, state.pageOffset - state.pagination.page_size);
+    loadBookmarks(state.pagination.prev_cursor);
+  }
+}
+
+function handlePageSizeChange(newSize) {
+  state.pagination.page_size = newSize;
+  resetPagination();
+  loadBookmarks();
+}
+
+function resetPagination() {
+  state.pageOffset = 0;
 }
 
 async function loadTags() {
@@ -121,18 +155,21 @@ async function handleDeleteConfirm() {
 
 function handleTagClick(tagName) {
   state.tag = state.tag === tagName ? null : tagName;
+  resetPagination();
   ui.renderTags(state.tags, state.tag, handleTagClick);
   loadBookmarks();
 }
 
 function handleFavoritesFilter() {
   state.favorite = !state.favorite;
+  resetPagination();
   ui.setFavoritesFilterActive(state.favorite);
   loadBookmarks();
 }
 
 const handleSearch = debounce((value) => {
   state.search = value;
+  resetPagination();
   loadBookmarks();
 }, 300);
 
