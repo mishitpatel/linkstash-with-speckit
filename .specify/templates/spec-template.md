@@ -18,6 +18,14 @@
   - Tested independently
   - Deployed independently
   - Demonstrated to users independently
+
+  ACCEPTANCE SCENARIO LANGUAGE CHECK:
+  For projects with a user-facing interface (web, mobile, desktop, CLI):
+  - "When" clauses MUST describe USER actions (e.g., "When I click...", "When I select...",
+    "When I type..."), NOT system internals ("When I request...", "When the API receives...")
+  - "Then" clauses MUST describe what the USER observes (e.g., "Then I see...",
+    "Then the list shows...", "Then an error message appears...")
+  For API-only or library projects, system-level language is acceptable.
 -->
 
 ### User Story 1 - [Brief Title] (Priority: P1)

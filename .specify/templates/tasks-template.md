@@ -41,6 +41,17 @@ description: "Task list template for feature implementation"
   - Delivered as an MVP increment
   
   DO NOT keep these sample tasks in the generated tasks.md file.
+
+  LAYER COVERAGE SWEEP (multi-layer projects only):
+  After generating all tasks, validate each user story phase:
+  1. Identify the project's layers from plan.md (e.g., backend: src/, frontend: public/).
+  2. For each user story with user-facing acceptance scenarios:
+     - Verify at least one task touches files in EACH layer the user's action traverses.
+     - If a story has backend tasks but no frontend tasks (or vice versa), either:
+       (a) Add the missing layer tasks, or
+       (b) Add a note explaining why the layer is not affected.
+  Common gap: A story says "user can configure X" but tasks only add backend
+  validation without a corresponding UI control for the user to interact with.
   ============================================================================
 -->
 
